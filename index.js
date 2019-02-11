@@ -4,6 +4,9 @@ const bodyParser = require("body-parser");
 var MongoClient = require('mongodb').MongoClient;
 var url = "mongodb://localhost:27017/baza";
 var ObjectId = require('mongodb').ObjectId;
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://localhost/my_database');
 
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -115,35 +118,36 @@ app.post('/lajkovani', (req, res) => {
         var dbo = db.db("baza");
         dbo.collection("lajkovani").find({user_email: user_email}).toArray(function (err, result) {
             if (err) throw err;
-            array = result;
-            array.forEach(element => {
-                dbo.collection("oglasi").find({"_id": ObjectId(element.oglas_id)}).toArray(function (err, result) {
-                    console.log('AAAA: ',result)
-                    if (err) throw err;
-                });
-                 res.json(result);
+            array = result.map(data => new ObjectId(data.oglas_id));
+            console.log(array)
+            var options =
+                {$in: [ObjectId("5c61a4bd112685188cf50acf")]}
 
-            });
+            dbo.collection("oglasi").find({ _id: { $in: array } }).toArray(function (err, result) {
+                console.log("WIN: ", result)
+                res.json(result);
+            })
+
             db.close();
         });
     });
 
-  /*  MongoClient.connect(url, function (err, db) {
-        if (err) throw err;
-        var dbo = db.db("baza");
-        console.log('drugi: ', array);
-        if (array !== null || array !== undefined) {
-            array.forEach(element => {
-                dbo.collection("oglasi").find({"_id": ObjectId(element.oglas_id)}).toArray(function (err, result) {
-                    if (err) throw err;
-                    res.json(result);
-                });
-                console.log(122);
+    /*  MongoClient.connect(url, function (err, db) {
+          if (err) throw err;
+          var dbo = db.db("baza");
+          console.log('drugi: ', array);
+          if (array !== null || array !== undefined) {
+              array.forEach(element => {
+                  dbo.collection("oglasi").find({"_id": ObjectId(element.oglas_id)}).toArray(function (err, result) {
+                      if (err) throw err;
+                      res.json(result);
+                  });
+                  console.log(122);
 
-            });
-        }
-        db.close();
-    });*/
+              });
+          }
+          db.close();
+      });*/
 });
 //---------------------------------------DELETE---------------------------------------------
 
