@@ -38,6 +38,20 @@ app.post('/user', (req, res) => {
     });
 });
 
+app.post('/oglas', (req, res) => {
+    let id = req.body.id;
+    MongoClient.connect(url, function (err, db) {
+        if (err) throw err;
+        var dbo = db.db("baza");
+        // dbo.createIndex({email: -1});
+        dbo.collection("oglasi").findOne({_id: new ObjectId(id)}, function (err, result) {
+            if (err) throw err;
+            res.json(result);
+            db.close();
+        });
+    });
+});
+
 app.post('/sve', (req, res) => {
     MongoClient.connect(url, function (err, db) {
         if (err) throw err;
@@ -112,42 +126,51 @@ app.post('/mojiMod', (req, res) => {
 
 app.post('/lajkovani', (req, res) => {
     let user_email = req.body.user_email;
-    var array = [];
     MongoClient.connect(url, function (err, db) {
         if (err) throw err;
         var dbo = db.db("baza");
         dbo.collection("lajkovani").find({user_email: user_email}).toArray(function (err, result) {
             if (err) throw err;
             array = result.map(data => new ObjectId(data.oglas_id));
-            console.log(array)
-            var options =
-                {$in: [ObjectId("5c61a4bd112685188cf50acf")]}
-
-            dbo.collection("oglasi").find({ _id: { $in: array } }).toArray(function (err, result) {
-                console.log("WIN: ", result)
+            dbo.collection("oglasi").find({_id: {$in: array}}).toArray(function (err, result) {
                 res.json(result);
             })
-
             db.close();
         });
     });
+});
 
-    /*  MongoClient.connect(url, function (err, db) {
-          if (err) throw err;
-          var dbo = db.db("baza");
-          console.log('drugi: ', array);
-          if (array !== null || array !== undefined) {
-              array.forEach(element => {
-                  dbo.collection("oglasi").find({"_id": ObjectId(element.oglas_id)}).toArray(function (err, result) {
-                      if (err) throw err;
-                      res.json(result);
-                  });
-                  console.log(122);
+app.post('/vrati_komentar', (req, res) => {
+    let oglas_id = req.body.oglas_id;
+    MongoClient.connect(url, function (err, db) {
+        if (err) throw err;
+        var dbo = db.db("baza");
+        dbo.collection("komentari").findOne({oglas_id: oglas_id}, function (err, result) {
+            if (err) throw err;
+            res.json(result);
+            db.close();
+        });
+    });
+});
 
-              });
-          }
-          db.close();
-      });*/
+app.post('/komentarisi', (req, res) => {
+    let oglas_id = req.body.oglas_id;
+    let user_email = req.body.user_email;
+    let text = req.body.text;
+    MongoClient.connect(url, function (err, db) {
+        if (err) throw err;
+        var dbo = db.db("baza");
+        dbo.collection("komentari").update({oglas_id: oglas_id},
+            {
+                $push: {
+                    "komentari": {
+                        user_email: user_email,
+                        text: text
+                    }
+                }
+            }, {upsert: true})
+        db.close();
+    });
 });
 //---------------------------------------DELETE---------------------------------------------
 
@@ -188,6 +211,7 @@ app.post('/insert', function (req, res) {
         };
         if (err) throw err;
         dbo.collection("oglasi").insertOne(myobj, function (err, res) {
+            console.log("UPIS");
             db.close();
         });
     });
@@ -217,7 +241,6 @@ app.post('/insert_user', function (req, res) {
             db.close();
         });
     });
-
 });
 
 //------------------------------------------------------UPDATE--------------------------------------------------
